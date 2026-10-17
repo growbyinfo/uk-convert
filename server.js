@@ -5,6 +5,7 @@ const PORT = process.env.PORT || 8080;
 const startedAt = new Date();
 
 app.disable('x-powered-by');
+app.use(express.json());
 // allow embedding in your own site (change * to https://ssyoutube.is if you want to lock it)
 app.use((req, res, next) => {
   res.setHeader('Content-Security-Policy', 'frame-ancestors *');
@@ -34,6 +35,33 @@ app.get('/api/info', async (req, res) => {
   } catch (e) {
     res.status(502).json({ error: 'lookup failed' });
   }
+});
+
+
+// --- server-side proxy to the converter (browser CORS does not apply here) ---
+app.get('/api/key', async (req, res) => {
+  const id = String(req.query.id || '');
+  if (!/^[\w-]{11}$/.test(id)) return res.status(400).json({ error: 'invalid video id' });
+  try {
+    const r = await fetch('https://cnv.cx/v2/sanity/key?id=' + id);
+    const text = await r.text();
+    res.status(r.status).type('application/json').send(text);
+  } catch (e) { res.status(502).json({ error: 'key lookup failed' }); }
+});
+
+app.post('/api/convert', async (req, res) => {
+  const { key, link, format, audioBitrate, videoQuality } = req.body || {};
+  if (!key || !/^https:\/\/youtu\.be\/[\w-]{11}$/.test(link || '') || !['mp3', 'mp4'].includes(format))
+    return res.status(400).json({ error: 'bad request' });
+  try {
+    const r = await fetch('https://cnv.cx/v2/converter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', accept: '*/*', key },
+      body: new URLSearchParams({ link, format, audioBitrate: String(audioBitrate), videoQuality: String(videoQuality), filenameStyle: 'pretty', vCodec: 'h264' })
+    });
+    const text = await r.text();
+    res.status(r.status).type('application/json').send(text);
+  } catch (e) { res.status(502).json({ error: 'convert failed' }); }
 });
 
 app.listen(PORT, '0.0.0.0', () => console.log('uk-convert running on port ' + PORT));

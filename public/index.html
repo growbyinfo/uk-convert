@@ -156,12 +156,12 @@ function startConvert(vtype, vqual){
   const aqual = vtype === 'mp4' ? 128 : vqual;
   const vq    = vtype === 'mp3' ? 720 : vqual;
 
-  fetch('https://cnv.cx/v2/sanity/key?id='+videoId, {headers:{'Content-Type':'application/json'}})
+  fetch('/api/key?id='+videoId)
     .then(r => r.json())
-    .then(d => fetch('https://cnv.cx/v2/converter', {
+    .then(d => fetch('/api/convert', {
       method:'POST',
-      headers:{'Content-Type':'application/x-www-form-urlencoded', accept:'*/*', key:d.key},
-      body:new URLSearchParams({link:'https://youtu.be/'+videoId, format:vtype, audioBitrate:aqual, videoQuality:vq, filenameStyle:'pretty', vCodec:'h264'})
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({key:d.key, link:'https://youtu.be/'+videoId, format:vtype, audioBitrate:aqual, videoQuality:vq})
     }))
     .then(r => r.json())
     .then(obj => {
