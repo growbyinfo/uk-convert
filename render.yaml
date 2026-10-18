@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: cnv-api-compatibility-test
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CNV_BASE_URL
+        value: https://cnv.cx
+      - key: CNV_KEY_PATH
+        value: /v2/sanity/key
+      - key: REQUEST_TIMEOUT_MS
+        value: "10000"
+      - key: SITE_ORIGIN
+        sync: false
